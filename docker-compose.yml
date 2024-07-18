@@ -1,0 +1,45 @@
+# SPDX-FileCopyrightText: Magenta ApS <https://magenta.dk>
+# SPDX-License-Identifier: MPL-2.0
+---
+services:
+  amqp2http:
+    build: .
+    command: ["uvicorn", "--factory", "amqp2http.main:create_app", "--host", "0.0.0.0", "--reload"]
+    environment:
+      LOG_LEVEL: "INFO"
+
+      # OS2mo
+      FASTRAMQPI__MO_URL: "http://mo:5000"
+      FASTRAMQPI__AUTH_SERVER: "http://keycloak:8080/auth"
+      FASTRAMQPI__CLIENT_ID: "dipex"
+      FASTRAMQPI__CLIENT_SECRET: "603f1c82-d012-4d04-9382-dbe659c533fb"
+
+      # AMQP
+      FASTRAMQPI__AMQP__URL: "amqp://guest:guest@msg-broker"
+
+      # Database (required for integration-tests)
+      FASTRAMQPI__DATABASE__USER: "fastramqpi"
+      FASTRAMQPI__DATABASE__PASSWORD: "fastramqpi"
+      FASTRAMQPI__DATABASE__HOST: "db"
+      FASTRAMQPI__DATABASE__NAME: "fastramqpi"
+    volumes:
+      - ./amqp2http/:/app/amqp2http/:ro
+      - ./tests/:/app/tests/:ro
+    tmpfs:
+      - /app/.pytest_cache/
+    networks:
+      - os2mo_default
+      - default
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: "fastramqpi"
+      POSTGRES_PASSWORD: "fastramqpi"
+      POSTGRES_DB: "fastramqpi"
+    networks:
+      - default
+
+networks:
+  os2mo_default:
+    external: true

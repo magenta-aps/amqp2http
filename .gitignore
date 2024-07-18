@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 2019-2020 Magenta ApS
+# SPDX-License-Identifier: MPL-2.0
+**/__pycache__/**
+.hypothesis/**
+/.coverage
+/.coveragerc
+/docker-compose.override.yml
+.cache/**
+**/.cache/**
+venv

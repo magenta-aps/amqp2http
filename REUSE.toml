@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: Magenta ApS <https://magenta.dk>
+# SPDX-License-Identifier: MPL-2.0
+version = 1
+SPDX-PackageName = "amqp2http"
+SPDX-PackageSupplier = "Magenta ApS <info@magenta.dk>"
+
+[[annotations]]
+path = "poetry.lock"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "Magenta ApS <info@magenta.dk>"
+SPDX-License-Identifier = "MPL-2.0"

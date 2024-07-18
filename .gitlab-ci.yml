@@ -1,0 +1,83 @@
+# SPDX-FileCopyrightText: Magenta ApS <https://magenta.dk>
+# SPDX-License-Identifier: MPL-2.0
+
+stages:
+  - sync
+  - lint
+  - build
+  - test
+  - coverage
+  - release
+  - deploy
+  - docs
+
+
+variables:
+  RELEASE_REGISTRY_IMAGE: index.docker.io/magentaaps/amqp2http
+
+  IMAGE_SHA: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
+
+  PYTEST_COV_MODULE: amqp2http
+  PYTEST_COV_FAIL_UNDER: 100
+
+  POETRY_VERSION: "1.8"
+  PRECOMMIT_USE_POETRY: "true"
+
+
+# Conditions
+#############
+# Global Conditions
+.if-default-branch-refs: &if-default-branch-refs
+  if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+.if-tag: &if-tag
+  if: '$CI_COMMIT_TAG'
+
+.if-merge-request: &if-merge-request
+  if: '$CI_MERGE_REQUEST_IID'
+
+
+include:
+  - project: labs/salt-automation
+    file:
+      - gitlab-ci-templates/common/no-interrupt.v1.yml
+      - gitlab-ci-templates/common/conventional-commits.v1.yml
+      - gitlab-ci-templates/common/conventional-commits-changelog.v1.yml
+      - gitlab-ci-templates/common/docker-build.v1.yml
+      - gitlab-ci-templates/common/docker-release.v1.yml
+  - project: labs/salt-automation
+    file:
+      - gitlab-ci-templates/common/pre-commit.v1.yml
+    rules:
+      - <<: *if-merge-request
+  - project: labs/salt-automation
+    file:
+      - gitlab-ci-templates/python/pytest.v1.yml
+    inputs:
+      pytest_addopts: "-m 'not integration_test'"
+    rules:
+      - <<: *if-merge-request
+  - project: rammearkitektur/os2mo
+    file:
+      - gitlab-ci-templates/integration-test-meta.v1.yml
+
+
+# Workflow
+###########
+workflow:
+  rules:
+    - <<: *if-tag
+      variables:
+        # Override the IMAGE_SHA variable on tag pipelines to avoid both the default
+        # branch pipeline and tag pipeline overriding each other's images arbitrarily when
+        # they are both running at the same time on master.
+        IMAGE_SHA: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}
+    - <<: *if-default-branch-refs
+    - <<: *if-merge-request
+
+
+Integration-test:
+  extends:
+    - .integration-test:mo
+  rules:
+    - <<: *if-merge-request
