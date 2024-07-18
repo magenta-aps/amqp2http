@@ -3,10 +3,13 @@
 """Test the settings module."""
 
 import pytest
+from more_itertools import one
 from pydantic import ValidationError
 from pytest import MonkeyPatch
 
 from amqp2http.main import Settings
+
+from .fixtures import EXAMPLE_MAPPING_JSON
 
 
 def field_required(fieldname: str) -> str:
@@ -61,3 +64,29 @@ async def test_settings_invalid(
 async def test_minimal_settings() -> None:
     """Test that we can construct settings using our minimal settings."""
     Settings()
+
+
+@pytest.mark.envvar({"EVENT_MAPPING": EXAMPLE_MAPPING_JSON})
+@pytest.mark.usefixtures("minimal_settings")
+async def test_integration_mapping() -> None:
+    """Test event mappings parse as expected."""
+    settings = Settings()
+
+    assert settings.event_mapping.integrations.keys() == {"ldap"}
+    exchanges = settings.event_mapping.integrations["ldap"].exchanges
+
+    assert exchanges.keys() == {"os2mo", "ldap"}
+    mo2ldap_queues = exchanges["os2mo"].queues
+    person1, person2 = mo2ldap_queues
+
+    ldap2mo_queues = exchanges["ldap"].queues
+    uuid = one(ldap2mo_queues)
+
+    assert person1.routing_key == "person"
+    assert person1.url == "http://ldap/mo2ldap/person1"
+
+    assert person2.routing_key == "person"
+    assert person2.url == "http://ldap/mo2ldap/person2"
+
+    assert uuid.routing_key == "uuid"
+    assert uuid.url == "http://ldap/ldap2mo/uuid"
