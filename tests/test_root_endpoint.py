@@ -6,6 +6,8 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
+from .fixtures import EXAMPLE_MAPPING_JSON
+
 
 @pytest.mark.integration_test
 async def test_root(test_client: AsyncClient) -> None:
@@ -16,9 +18,25 @@ async def test_root(test_client: AsyncClient) -> None:
 
 
 @pytest.mark.parametrize("url", ("/health/live", "/health/ready"))
+@pytest.mark.parametrize(
+    "expected",
+    [
+        {"AMQP": True},
+        pytest.param(
+            {
+                "AMQP": True,
+                "AMQP_ldap_os2mo": True,
+                "AMQP_ldap_ldap": True,
+            },
+            marks=pytest.mark.envvar({"EVENT_MAPPING": EXAMPLE_MAPPING_JSON}),
+        ),
+    ],
+)
 @pytest.mark.integration_test
-async def test_health(test_client: AsyncClient, url: str) -> None:
+async def test_health(
+    test_client: AsyncClient, url: str, expected: dict[str, bool]
+) -> None:
     """Ensure the health endpoint checks the expected services."""
     result = await test_client.get(url)
     assert result.status_code == status.HTTP_200_OK
-    assert result.json() == {"AMQP": True}
+    assert result.json() == expected

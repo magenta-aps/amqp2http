@@ -8,6 +8,36 @@ services:
     environment:
       LOG_LEVEL: "INFO"
 
+      EVENT_MAPPING: >-
+        {
+            "integrations": {
+                "ldap": {
+                    "exchanges": {
+                        "os2mo": {
+                            "queues": [
+                                {
+                                    "routing_key": "person",
+                                    "url": "http://ldap/mo2ldap/person1"
+                                },
+                                {
+                                    "routing_key": "person",
+                                    "url": "http://ldap/mo2ldap/person2"
+                                }
+                            ]
+                        },
+                        "ldap": {
+                            "queues": [
+                                {
+                                    "routing_key": "uuid",
+                                    "url": "http://ldap/ldap2mo/uuid"
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+
       # OS2mo
       FASTRAMQPI__MO_URL: "http://mo:5000"
       FASTRAMQPI__AUTH_SERVER: "http://keycloak:8080/auth"
