@@ -15,29 +15,14 @@ from fastramqpi.ramqp import Router
 from fastramqpi.ramqp.amqp import AMQPSystem
 from fastramqpi.ramqp.config import AMQPConnectionSettings
 from fastramqpi.ramqp.config import StructuredAmqpDsn
-from fastramqpi.ramqp.depends import Message
 from pydantic import AmqpDsn
+
+from amqp2http.dispatch import dispatch_amqp_message
 
 from .config import EventEndpoint
 from .config import Settings
 
 logger = structlog.stdlib.get_logger()
-
-
-async def noop_handler(
-    endpoint: EventEndpoint, message: Message
-) -> None:  # pragma: no cover
-    """Noop event handler.
-
-    Args:
-        endpoint: The endpoint configuration to run this handler for.
-        message: The AMQP message we received and need to process.
-    """
-    logger.info(
-        "Received AMQP message",
-        endpoint=endpoint,
-        message_id=message.message_id,
-    )
 
 
 async def healthcheck_amqp(amqpsystem: AMQPSystem, context: Context) -> bool:
@@ -81,7 +66,7 @@ def create_amqpsystem(
         url_hash = sha256(event.url.encode("utf-8")).hexdigest()[:8]
         handler_name = f"{mapping_prefix}_{event.routing_key}_{url_hash}"
 
-        callable = partial(noop_handler, event)
+        callable = partial(dispatch_amqp_message, event)
         callable.__name__ = handler_name  # type: ignore
 
         amqp_router.register(event.routing_key)(callable)

@@ -8,6 +8,7 @@ from typing import Any
 from typing import Mapping
 from typing import cast
 from unittest import mock
+from unittest.mock import AsyncMock
 
 import pytest
 from asgi_lifespan import LifespanManager
@@ -137,3 +138,10 @@ async def test_client(asgiapp: ASGIApp) -> AsyncIterator[AsyncClient]:
 async def graphql_client(app: FastAPI) -> AsyncClientSession:
     """Authenticated GraphQL codegen client for OS2mo."""
     return cast(AsyncClientSession, app.state.context["graphql_client"])
+
+
+@pytest.fixture
+async def disable_asyncio_sleep() -> AsyncIterator[None]:
+    """Fixture to disable `asyncio.sleep` during unit-tests."""
+    with mock.patch("asyncio.sleep", new_callable=AsyncMock):
+        yield

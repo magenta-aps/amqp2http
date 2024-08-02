@@ -2,18 +2,22 @@
 # SPDX-License-Identifier: MPL-2.0
 """AMQP2HTTP bridge."""
 
+from typing import Annotated
+
 from fastramqpi.config import Settings as FastRAMQPISettings
-from pydantic import AnyUrl
+from pydantic import AnyHttpUrl
 from pydantic import BaseModel
 from pydantic import BaseSettings
 from pydantic import Field
+
+NonEmptyString = Annotated[str, Field(min_length=1)]
 
 
 class EventEndpoint(BaseModel):
     """An endpoint to send event http calls to."""
 
-    routing_key: str
-    url: AnyUrl = Field(..., description="URL to send events to")
+    routing_key: NonEmptyString
+    url: AnyHttpUrl = Field(..., description="URL to send events to")
 
 
 class ExchangeMapping(BaseModel):
@@ -25,13 +29,13 @@ class ExchangeMapping(BaseModel):
 class IntegrationMapping(BaseModel):
     """An collection of event endpoints for upstream exchanges."""
 
-    exchanges: dict[str, ExchangeMapping]
+    exchanges: dict[NonEmptyString, ExchangeMapping]
 
 
 class EventMapping(BaseModel):
     """A grouping from integration names to integration mappings."""
 
-    integrations: dict[str, IntegrationMapping]
+    integrations: dict[NonEmptyString, IntegrationMapping]
 
 
 class Settings(BaseSettings):
