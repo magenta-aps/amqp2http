@@ -12,13 +12,20 @@ from fastapi import FastAPI
 from more_itertools import one
 from uvicorn import Config
 from uvicorn import Server
+from amqp2http.main import create_app
 
-app = FastAPI()
+
+import pytest
 
 
-@app.get("/")
-async def root() -> dict[str, str]:
-    return {"message": "Hello, World!"}
+def create_integration_app() -> FastAPI:
+    app = FastAPI()
+
+    @app.get("/")
+    async def root() -> dict[str, str]:
+        return {"message": "Hello, World!"}
+
+    return app
 
 
 @asynccontextmanager
@@ -46,6 +53,7 @@ def server2url(server: Server) -> str:
 
 
 async def test_start_server() -> None:
+    app = create_integration_app()
     async with run_server(app=app) as server:
         url = server2url(server)
 
@@ -53,3 +61,20 @@ async def test_start_server() -> None:
             result = await client.get(url)
             assert result.status_code == 200
             assert result.json() == {"message": "Hello, World!"}
+
+
+@pytest.mark.integration_test
+async def test_integration() -> None:
+    integration = create_integration_app()
+    amqp2http = create_app()
+
+    async with run_server(app=integration) as integration_server:
+        integration_url = server2url(integration_server)
+
+        async with run_server(app=amqp2http) as amqp2http_server:
+            amqp2http_url = server2url(amqp2http_server)
+
+            async with httpx.AsyncClient() as client:
+                result = await client.get(f"{amqp2http_url}")
+                assert result.status_code == 200
+                assert result.json() == {"message": "Hello, World!"}
